@@ -2,7 +2,7 @@
 Type=Application
 Name=Razer Kiyo Control
 Comment=Adjust camera settings via v4l2-ctl
-Icon=camera-photo
+Icon=/usr/share/icons/camera-control.png
 Exec=camerac
 Terminal=false
 Categories=Utility;
