@@ -1,7 +1,63 @@
 #!/usr/bin/env python3
 
+import subprocess
 import tkinter as tk
 from subprocess import call
+from tkinter import messagebox
+
+
+# Variáveis globais
+dispositivos = {}
+dispositivo_var = None
+
+def listar_dispositivos():
+    global dispositivos
+    try:
+        cmd = "v4l2-ctl --list-devices"
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = process.communicate()
+        if process.returncode != 0:
+            raise Exception("Erro ao listar dispositivos: " + str(error.decode()))
+
+        devices = {}
+        output = output.decode().split('\n')
+        device_name = None
+        for line in output:
+            if ':' in line:
+                device_name = line.split('(')[0].strip()
+            elif '/dev/video' in line:
+                if device_name:
+                    devices[device_name] = line.strip()
+        dispositivos = devices
+        return devices
+    except Exception as e:
+        messagebox.showerror("Erro", str(e))
+        return {}
+
+def atualizar_dispositivo(event):
+    global dispositivos, dispositivo_var
+    selected_device = dispositivo_var.get()
+    print("Dispositivo selecionado:", selected_device, dispositivos[selected_device])
+
+def criar_interface():
+    global dispositivo_var, dispositivos
+    root = tk.Tk()
+    root.title("Painel de Controle da Câmera")
+
+    dispositivo_var = tk.StringVar(root)
+    dispositivos = listar_dispositivos()
+    if dispositivos:
+        dispositivo_var.set(next(iter(dispositivos)))  # default to the first device
+
+    frame_dispositivo = tk.Frame(root)
+    tk.Label(frame_dispositivo, text="Escolha o Dispositivo:").pack(side=tk.LEFT)
+    dispositivo_menu = tk.OptionMenu(frame_dispositivo, dispositivo_var, *dispositivos.keys())
+    dispositivo_menu.pack(fill=tk.X, expand=True)
+    frame_dispositivo.pack(fill=tk.X, expand=True)
+
+    dispositivo_var.trace("w", atualizar_dispositivo)
+
+    # Aqui você pode adicionar os outros controles da sua interface...
 
 def update_control(control, value):
     command = f"v4l2-ctl -d /dev/video2 -c {control}={value}"
@@ -57,4 +113,6 @@ create_checkbox(root, "White Balance Automatic", "white_balance_automatic", 1)
 create_checkbox(root, "Exposure Dynamic Framerate", "exposure_dynamic_framerate", 0)
 create_checkbox(root, "Focus Automatic Continuous", "focus_automatic_continuous", 1)
 
+if __name__ == "__main__":
+    criar_interface()
 root.mainloop()
